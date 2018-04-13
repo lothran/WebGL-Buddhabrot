@@ -19,7 +19,7 @@ const buddhaImportanceFs =
         vec2 z = p;
         bool valid = false;
         int i  = 0;
-        for(;i<200;i++)
+        for(;i<100;i++)
         {
             z = cpow2(z)+p;
             float d =dot(z,z);
@@ -33,7 +33,7 @@ const buddhaImportanceFs =
             }
         }
         if(valid){
-            return float(i)/200.0;
+            return sqrt(float(i))/sqrt(100.);
         }
         else
         {

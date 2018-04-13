@@ -86,7 +86,7 @@ function Mandelbrot(gl)
         vec2 p = uv*2.0-vec2(1);
         p = ( inverse(viewMatrix)*vec3(p,1)).xy;
         vec2 z = p;
-        for(int i = 0;i<200;i++)
+        for(int i = 0;i<100;i++)
         {
             z = cpow2(z)+p;
             if(dot(z,z)>4.0)

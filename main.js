@@ -22,9 +22,8 @@ function main()
 
     var b = new Buddha(gl);
     var m = new Mandelbrot(gl);
-    b.viewMatrix = mat.getMatrix(1);
-    b.traceOrbits();
-    b.show();
+
+    var inMove =false;
     function render()
     {
       
@@ -35,11 +34,17 @@ function main()
         {
             m.draw();
             m.uniforms.viewMatrix = b.viewMatrix;
-            
+            inMove = true;
 
         }
         else
         {
+            if(inMove)
+            {
+                b.clearOrbitsMap();
+                inMove =false;
+
+            }
             b.genOrbits();
             b.traceOrbits();
             b.show();

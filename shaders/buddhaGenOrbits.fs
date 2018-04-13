@@ -1,6 +1,6 @@
 const buddhaGenOrbitsFs = `#version 300 es
-precision highp float;
-precision highp int;
+precision lowp float;
+precision lowp int;
 out vec4 color;
 void main()
 {

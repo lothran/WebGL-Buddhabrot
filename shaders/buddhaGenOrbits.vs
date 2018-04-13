@@ -1,14 +1,21 @@
 const buddhaGenOrbitsVs = `
 #version 300 es
-precision highp float;
-precision highp int;
+precision lowp float;
+precision lowp int;
 layout(location =0)in uint seed; 
 uint lseed;
 out vec2 nextOrbitSource;
 out vec2 nextOrbitPosition;
+
+
 flat out uint nextSeed;
 uniform vec2 orbitSampleBegin;
 uniform vec2 orbitSampleEnd;
+uniform uint iterationCount;
+uniform uint init;
+uniform sampler2D importanceMap;
+
+
 float rand01()
 {
     uint x = lseed;
@@ -34,7 +41,7 @@ bool isNotInM(vec2 p)
 {
   
     vec2 z = p;
-    for(int i = 0;i<200;i++)
+    for(int i = 0;i<100;i++)
     {
         z = cpow2(z)+p;
         if(dot(z,z)>4.0)
@@ -46,17 +53,22 @@ bool isNotInM(vec2 p)
     return false;
 
 }
+
 vec2 pointOusideM()
 {
 
-    for(int i = 0;i<20;i++)
+    vec2 bestP = vec2(0);
+    float bestI = 0.0;
+    for(int i = 0;i<40;i++)
     {   
-        vec2 p =rand2()*(orbitSampleEnd-orbitSampleBegin)+orbitSampleBegin;
-        if( isNotInM(p))
-        {
-            return p;
+        vec2 uv =rand2();
+        float I = texture(importanceMap,uv).r;
+        if(I> bestI)
+        {   
+            bestP = uv*(orbitSampleEnd-orbitSampleBegin)+orbitSampleBegin;
         }
     }
+    return bestP;
 }
 
 void main()
