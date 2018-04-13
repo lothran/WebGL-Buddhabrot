@@ -130,7 +130,7 @@ function TexturQuad(gl,tex)
     in vec2 uv;
     void main()
     {
-        color = vec4(sqrt(texture(image,uv).rgb)/20.0,1);
+        color = vec4(sqrt(texture(image,uv).rgb)/100.0,1);
 
     }`
     var quad =  new FullscreenQuad(gl,null,fs);

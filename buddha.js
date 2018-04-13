@@ -102,6 +102,7 @@ Buddha.prototype = {
             orbitSampleEnd:this.orbitSampleEnd,
             iterationCount: this.iterationCount,
             importanceMap: this.importanceFB.attachments[0],
+            viewMatrix: this.viewMatrix,
 
         };
         gl.useProgram(this.genOrbitsSHP.program);
@@ -198,7 +199,7 @@ Buddha.prototype = {
     {
         const gl = this.gl;
         const orbitAttachments = [
-            {internalFormat:gl.R16F, format: gl.RED,type:gl.HALF_FLOAT}
+            {internalFormat:gl.R32F, format: gl.RED,type:gl.FLOAT}
         ]
         this.orbitFB =twgl.createFramebufferInfo(gl,orbitAttachments);
         twgl.bindFramebufferInfo(gl);

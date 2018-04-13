@@ -22,7 +22,9 @@ function main()
 
     var b = new Buddha(gl);
     var m = new Mandelbrot(gl);
-
+    b.viewMatrix = mat.getMatrix(1);
+    b.traceOrbits();
+    b.show();
     var inMove =false;
     function render()
     {

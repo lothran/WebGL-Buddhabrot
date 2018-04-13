@@ -29,7 +29,7 @@ void main()
         {
             nextOrbitPosition.x = 0.0;
             nextOrbitPosition.y = 0.0;
-            gl_Position = vec4(10000,10000,0,1);
+             gl_Position = vec4(10000,10000,0,1);
             gl_PointSize = 0.0;
         }
         else if(dot(orbitPosition,orbitPosition)>40.0)

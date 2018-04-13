@@ -5,5 +5,5 @@ precision lowp int;
 out float color;
 void main()
 {
-    color = 0.5;
+    color = 0.2;
 }`;

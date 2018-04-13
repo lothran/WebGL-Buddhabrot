@@ -9,6 +9,8 @@ out vec2 nextOrbitPosition;
 
 
 flat out uint nextSeed;
+
+uniform mat3 viewMatrix;
 uniform vec2 orbitSampleBegin;
 uniform vec2 orbitSampleEnd;
 uniform uint iterationCount;
@@ -66,6 +68,7 @@ vec2 pointOusideM()
         if(I> bestI)
         {   
             bestP = uv*(orbitSampleEnd-orbitSampleBegin)+orbitSampleBegin;
+            bestI = I;
         }
     }
     return bestP;
@@ -75,9 +78,10 @@ void main()
 {
     lseed  = seed;
     gl_PointSize = 1.0;
-    gl_Position = vec4(pointOusideM(),0,1);
+    vec2 p = pointOusideM();
+    gl_Position = vec4(viewMatrix*vec3(p,1),1);
     nextSeed =lseed;
-     nextOrbitSource =  gl_Position.xy;
-    nextOrbitPosition =  gl_Position.xy;
+     nextOrbitSource =  p;
+    nextOrbitPosition =  p;
    
 }`;
