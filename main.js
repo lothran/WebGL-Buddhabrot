@@ -9,12 +9,18 @@ function main()
 
     var canvas= document.getElementById("glcanvas");
     var gl = canvas.getContext("webgl2");
- 
+    if(!gl)
+    {
+        alert("This needs wegl2");
+    }
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     var ex = gl.getExtension('EXT_color_buffer_float');
     var ex1 =     gl.getExtension('OES_texture_float_linear');
-      
+    if(!ex||!ex1)
+    {
+        alert("This needs EXT_color_buffer_float and OES_texture_float_linear");
+    }
 
 
  
