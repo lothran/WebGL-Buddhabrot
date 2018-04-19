@@ -49,10 +49,8 @@ function FullscreenQuad(gl,vs,fs)
     {
        
         gl.useProgram(shp.program);
-        
-        gl.clearColor(0,0,0,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        twgl.setUniforms(shp,uniforms)
+    
+        twgl.setUniforms(shp,uniforms);
         twgl.setBuffersAndAttributes(gl,shp,vertexBuffer);
         gl.drawArrays(gl.TRIANGLE_FAN,0,4);
        
@@ -116,26 +114,153 @@ function Mandelbrot(gl)
     this.draw = function(){quad.draw(this.uniforms);};
 
 }
-function TexturQuad(gl,tex)
-{
-    this.uniforms =
-    {
-        image: tex,
+
+function hsvtoRGB(h, s, v) {
+    var r, g, b;
+    var i;
+    var f, p, q, t;
+     
+    // Make sure our arguments stay in-range
+    h = Math.max(0, Math.min(360, h));
+    s = Math.max(0, Math.min(100, s));
+    v = Math.max(0, Math.min(100, v));
+     
+    // We accept saturation and value arguments from 0 to 100 because that's
+    // how Photoshop represents those values. Internally, however, the
+    // saturation and value are calculated from a range of 0 to 1. We make
+    // That conversion here.
+    s /= 100;
+    v /= 100;
+     
+    if(s == 0) {
+        // Achromatic (grey)
+        r = g = b = v;
+        return [
+            r, 
+            g, 
+            b,
+        ];
     }
-    const fs = `#version 300 es
+     
+    h /= 60; // sector 0 to 5
+    i = Math.floor(h);
+    f = h - i; // factorial part of h
+    p = v * (1 - s);
+    q = v * (1 - s * f);
+    t = v * (1 - s * (1 - f));
+     
+    switch(i) {
+        case 0:
+            r = v;
+            g = t;
+            b = p;
+            break;
+     
+        case 1:
+            r = q;
+            g = v;
+            b = p;
+            break;
+     
+        case 2:
+            r = p;
+            g = v;
+            b = t;
+            break;
+     
+        case 3:
+            r = p;
+            g = q;
+            b = v;
+            break;
+     
+        case 4:
+            r = t;
+            g = p;
+            b = v;
+            break;
+     
+        default: // case 5:
+            r = v;
+            g = p;
+            b = q;
+    }
+     
+    return [
+        r,g,b
+    ];
+}
+function MaxTexture(gl,width,height)
+{
+    const attachments = [
+        {internalFormat:gl.R32F, format: gl.RED,type:gl.FLOAT}
+    ]
+    var fb0 =twgl.createFramebufferInfo(gl,attachments,Math.ceil(width/4.0),Math.ceil(height/4.0));
+    var fb1 =twgl.createFramebufferInfo(gl,attachments,Math.ceil(width/4.0),Math.ceil(height/4.0));
+    twgl.bindFramebufferInfo(gl);
+    const reductionFs = 
+    `#version 300 es
     precision highp float;
     precision highp int;
-    out vec4 color;
-    uniform sampler2D image;
+    out float dest;
+    uniform sampler2D source;
     in vec2 uv;
     void main()
     {
-        color = vec4(sqrt(texture(image,uv).rgb)/20.0,1);
+        float bestVal = 0.0;
+        for(int x = 0;x<4;x++)
+        {
+            for(int y = 0;y<4;y++)
+            {
+                float val = texelFetch(source,ivec2(gl_FragCoord.xy)*4+ivec2(x,y),0).r;
+                if(val>bestVal)
+                {
+                    bestVal = val;
+                }
+            }
+        }
+        dest = bestVal;
+    }`; 
+    var render = new FullscreenQuad(gl,null,reductionFs);
+    this.tex = function()
+    {
+        return fb1.attachments[0];
+    }
+    this.update = function(target)
+    {
+        var lh = height;
+        var lw = width;
+        var uniforms = 
+        {
+            source:target,
+        };
+        while(lh>1||lw>1)
+        {
+            lw = Math.ceil(lw/4.0);
+            lh = Math.ceil(lh/4.0);
+            twgl.bindFramebufferInfo(gl,fb0);
+            gl.viewport(0,0,lw,lh);
+            render.draw(uniforms);
+            uniforms.source = fb0.attachments[0];
+            var t = fb0;
+            fb0 = fb1;
+            fb1 = t;
+        }
+        twgl.bindFramebufferInfo(gl);
 
-    }`
-    var quad =  new FullscreenQuad(gl,null,fs);
-    this.draw = function(){quad.draw(this.uniforms);};
+    }
+
+    
+    
+
+
 }
+
+
+
+
+
+
 
 function ViewMatrix2D(center,zoom,rotation,target)
 {
@@ -144,11 +269,14 @@ function ViewMatrix2D(center,zoom,rotation,target)
     var matS = [[Math.pow(2,zoom),0,0],[0,Math.pow(2,zoom)*ratio,0],[0,0,1]];
     rotation = math.round(rotation,10);//Fix nasty error with 1/2 PI;
     matR = [[Math.cos(rotation),Math.sin(rotation),0],[-Math.sin(rotation),Math.cos(rotation),0],[0,0,1]];
+
     var zoomSpeed = 0;
     var moveSpeed  = [0,0];
     var inRotation = false;
     var inDarg = false;
     var mat = math.multiply(matR,math.multiply(matT,matS));
+
+    
     var dirty= false;
     target.onwheel = function(e)
     {

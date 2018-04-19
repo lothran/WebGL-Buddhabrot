@@ -1,20 +1,43 @@
 
 
+
+
+
+
+var BuddhaCount = 0;
 function Buddha(gl)
 {
     this.gl= gl;
     this.orbitSampleBegin = [-3,-2];
     this.orbitSampleEnd = [2,2];
-    this.importanceResolution = 500;
-    this.orbitCount = 100000;
-    this.viewMatrix =   [1,0,0,
+    this.importanceResolution = 800;
+    this.orbitCount = 20000;
+    this.viewMatrix = [1,0,0,
                         0,1,0,
                         0,0,1];
-    this.iterationCount = 100;                    
 
+                        
+    this.importanceSampleCount =20;
+    this.iterationCount = 100;      
+    this.sqrtNormalize = false;
+    this.showImportanceMap = false;
+    if(BuddhaCount%3 == 0)
+    {
+        this.outputColor = [255,0,0,1];
+    }
+    if(BuddhaCount%3 == 1)
+    {
+        this.outputColor = [0,255,0,1];
+    }
+
+    if(BuddhaCount%3 == 2)
+    {
+        this.outputColor = [0,0,255,1];
+    }
+
+   
     this.rng  = new MersenneTwister();
     this.importanceMapRender = new FullscreenQuad(gl,null,buddhaImportanceFs);
-
     this.createOrbitData();
     this.createOrbitFB();
     this.createImportanceFB();
@@ -22,23 +45,126 @@ function Buddha(gl)
     this.genOrbitsTF = gl.createTransformFeedback();
     this.traceOrbitsSHP = twgl.createProgramInfo(gl,[buddhaTraceOrbitsVs,buddhaTraceOrbitsFs],{transformFeedbackVaryings:["nextOrbitPosition"]});
     this.traceOrbitsIterLoc = gl.getUniformLocation( this.traceOrbitsSHP.program,"iteration");
+    this.traceOrbitsMirrorLoc = gl.getUniformLocation( this.traceOrbitsSHP.program,"mirror");
     this.genOrbitsSHP =  twgl.createProgramInfo(gl,[buddhaGenOrbitsVs,buddhaGenOrbitsFs],{transformFeedbackVaryings:["nextOrbitSource","nextOrbitPosition","nextSeed"],});
-    this.display = new TexturQuad(gl,this.orbitFB.attachments[0]);
     this.updateImportanceMap();
     this.genOrbits();
+    this.drawMirrored = true;
+    var group = gui.addFolder("Buddha"+BuddhaCount.toString());
+    var iterationCon = group.add(this,"iterationCount",1,800);
+    var orbitCountCon = group.add(this,"orbitCount",200,50000);
+    var importanceSampleCountCon  = group.add(this,"importanceSampleCount",1,100);
+    var outputColorCon = group.addColor(this,"outputColor");
+    var mirrorCon = group.add(this,"drawMirrored");
+    var sqrtNormalizeCon= group.add(this,"sqrtNormalize");
+    var showImportanceMapCon= group.add(this,"showImportanceMap");
+    outputColorCon.onChange(()=>
+    {   
+        this.reset();
+    });
+    importanceSampleCountCon .onChange(()=>
+    {   
+        this.reset();
+    });
+    orbitCountCon.onChange(()=>
+    {   
+        this.createOrbitData();
+        this.reset();
+    });
+    iterationCon.onChange(()=>
+    {   
+        this.reset();
+    });
+    const displayFs = `
+    #version 300 es
+    precision highp float;
+    precision highp int;
+    out vec4 result;
+    uniform sampler2D density;
+    uniform sampler2D maxTex;
+    uniform bool sqrtNormalize;
+    uniform bool showImportanceMap;
+    uniform vec4 color;
+    uniform vec2 renderSize;
+    in vec2 uv;
 
+
+
+    float sampleDensity(vec2 p)
+    {
+        return texture(density,p).r;
+    }
+    float maxDensity()
+    {
+        return texelFetch(maxTex,ivec2(0),0).r;
+    }
+
+
+    void main()
+    {
+        if(showImportanceMap)
+        {
+            result = vec4(vec3(texture(density,uv).r),1);
+            return;
+        }
+        float d =  sqrt( sampleDensity(uv))/sqrt(maxDensity());
+   
+        result = vec4(color.rgb*d,color.a);
+
+    }`; 
+    this.normalizer = new MaxTexture(gl,gl.drawingBufferWidth,gl.drawingBufferHeight);
+    this.displayQuad = new FullscreenQuad(gl,null,displayFs);
+    BuddhaCount++;
+    
 }
 Buddha.prototype = {
+
+
+    draw: function()
+    {
+        const gl = this.gl;
+        
+        this.normalizer.update(this.orbitFB.attachments[0]);
+        var drawUniforms = 
+        {
+            maxTex: this.normalizer.tex(),
+            color: math.multiply( 1.0/255.0,this.outputColor),
+            density: this.orbitFB.attachments[0],
+            sqrtNormalize: this.sqrtNormalize,
+            showImportanceMap:this.showImportanceMap,
+            renderSize:[gl.drawingBufferWidth,gl.drawingBufferHeight],
+        }
+        if(this.showImportanceMap)
+        {
+            drawUniforms.density = this.importanceFB.attachments[0];
+        }
+          
+        drawUniforms.color[3] = this.outputColor[3];
+    
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        this.displayQuad.draw(drawUniforms);
+        gl.disable(gl.BLEND);
+        this.normalizeCounter++;
+    },
+    reset: function()
+    {
+        this.updateImportanceMap();
+        this.clearOrbitsMap();
+
+    },
     createImportanceFB: function()
     {
-        var size = math.multiply( math.subtract(this.orbitSampleEnd ,this.orbitSampleBegin),this.importanceResolution);
         const gl = this.gl;
+        var size = math.multiply( math.subtract(this.orbitSampleEnd ,this.orbitSampleBegin),this.importanceResolution);
         const importanceAttachments = [
             {internalFormat:gl.R8, format: gl.RED,type:gl.UNSIGNED_BYTE}
         ]
-        this.importanceFB =twgl.createFramebufferInfo(gl,importanceAttachments);
+        this.importanceFB =twgl.createFramebufferInfo(gl,importanceAttachments,size[0],size[1]);
         twgl.bindFramebufferInfo(gl);
     },
+
     updateImportanceMap: function()
     {
         const gl = this.gl; 
@@ -47,21 +173,19 @@ Buddha.prototype = {
         {
             orbitSampleBegin:this.orbitSampleBegin,
             orbitSampleEnd:this.orbitSampleEnd,
-
+            iterationCount: this.iterationCount,
+            viewMatrix: this.viewMatrix,
         }
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         this.importanceMapRender.draw(importanceUniforms);
         twgl.bindFramebufferInfo(gl);
     },
 
-    show:function()
-    {
-        this.display.draw();
-    },
     traceOrbits: function()
     {  
         const gl = this.gl; 
-        twgl.bindFramebufferInfo(gl,this.orbitFB); 
-       
+        twgl.bindFramebufferInfo(gl,this.orbitFB);
         gl.useProgram(this.traceOrbitsSHP.program);
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE);
@@ -77,6 +201,7 @@ Buddha.prototype = {
         twgl.setUniforms(this.traceOrbitsSHP,traceOrbitsUniforms);
         gl.enableVertexAttribArray(0);
         gl.enableVertexAttribArray(1);
+   
         
         for(var i = 0;i<this.iterationCount;i++){
             gl.uniform1f(this.traceOrbitsIterLoc ,i);
@@ -88,8 +213,15 @@ Buddha.prototype = {
             gl.beginTransformFeedback(gl.POINTS);
             gl.drawArrays(gl.POINTS,0,this.orbitCount);
             gl.endTransformFeedback(gl.POINTS);
+            if(this.drawMirrored)
+            {
+                gl.uniform1i(this.traceOrbitsMirrorLoc,1);
+                gl.drawArrays(gl.POINTS,0,this.orbitCount);
+                gl.uniform1i(this.traceOrbitsMirrorLoc,0);
+            }
             this.orbitData.swapPosition();
         }
+        gl.disable(gl.BLEND);
         twgl.bindFramebufferInfo(gl,0); 
     },
 
@@ -127,9 +259,10 @@ Buddha.prototype = {
     clearOrbitsMap:function()
     {
         const gl = this.gl; 
-        twgl.bindFramebufferInfo(gl,this.orbitFB); 
+        twgl.bindFramebufferInfo(gl,this.orbitFB);
         gl.clearColor(0,0,0,1);
         gl.clear(gl.COLOR_BUFFER_BIT);
+        twgl.bindFramebufferInfo(gl);
 
     },
     fillRandom: function(arr)
@@ -147,7 +280,7 @@ Buddha.prototype = {
         var buddha =  this;
         if(this.orbitData)
         {
-            orbitData.destroy();
+            this.orbitData.destroy();
         }
         this.orbitData = {
             seed0:this.createBuffer(this.fillRandom(new Uint32Array(this.orbitCount))),
@@ -203,6 +336,7 @@ Buddha.prototype = {
         ]
         this.orbitFB =twgl.createFramebufferInfo(gl,orbitAttachments);
         twgl.bindFramebufferInfo(gl);
+        
     },
     createBuffer: function(data)
     {

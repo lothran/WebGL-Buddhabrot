@@ -13,7 +13,7 @@ flat out uint nextSeed;
 uniform mat3 viewMatrix;
 uniform vec2 orbitSampleBegin;
 uniform vec2 orbitSampleEnd;
-uniform uint iterationCount;
+uniform int iterationCount;
 uniform uint init;
 uniform sampler2D importanceMap;
 
@@ -43,7 +43,7 @@ bool isNotInM(vec2 p)
 {
   
     vec2 z = p;
-    for(int i = 0;i<100;i++)
+    for(int i = 0;i<iterationCount;i++)
     {
         z = cpow2(z)+p;
         if(dot(z,z)>4.0)

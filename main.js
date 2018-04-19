@@ -4,9 +4,12 @@
 
 
 
+
+
+var gui = new dat.GUI();
 function main()
 {
-
+    
     var canvas= document.getElementById("glcanvas");
     var gl = canvas.getContext("webgl2");
     if(!gl)
@@ -21,41 +24,47 @@ function main()
     {
         alert("This needs EXT_color_buffer_float and OES_texture_float_linear");
     }
-
-
- 
+    
+  
+    
     var mat = new ViewMatrix2D([0,0],-2,-Math.PI/2,canvas);
+   
+    
+    var buddhas =[new Buddha(gl),new Buddha(gl),new Buddha(gl)]
+        
 
-    var b = new Buddha(gl);
-    var m = new Mandelbrot(gl);
-    b.viewMatrix = mat.getMatrix(1);
-    b.traceOrbits();
-    b.show();
+
+    
+    var mandelbrot = new Mandelbrot(gl);            
     var inMove =false;
+
     function render()
     {
       
         
-        b.viewMatrix = mat.getMatrix(1);
-      
+        var m = mat.getMatrix(1);
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         if(mat.isDirty())
         {
-            m.draw();
-            m.uniforms.viewMatrix = b.viewMatrix;
+            mandelbrot.draw();
+            mandelbrot.uniforms.viewMatrix =m;
             inMove = true;
 
         }
         else
         {
+            buddhas.forEach(function(elmt){elmt.viewMatrix = m;})
+
             if(inMove)
             {
-                b.clearOrbitsMap();
+                buddhas.forEach(function(elmt){elmt.reset();})
                 inMove =false;
 
             }
-            b.genOrbits();
-            b.traceOrbits();
-            b.show();
+            buddhas.forEach(function(elmt){elmt.genOrbits();})
+            buddhas.forEach(function(elmt){elmt.traceOrbits();})
+            buddhas.forEach(function(elmt){elmt.draw();})
         }
 
         requestAnimationFrame(render);

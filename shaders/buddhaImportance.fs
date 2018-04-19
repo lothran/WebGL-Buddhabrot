@@ -5,7 +5,8 @@ const buddhaImportanceFs =
 
     uniform vec2 orbitSampleBegin;
     uniform vec2 orbitSampleEnd;
-
+    uniform int iterationCount;
+    uniform mat3 viewMatrix;
     out float result;
     in vec2 uv;
     vec2 cpow2(vec2 z)
@@ -13,15 +14,24 @@ const buddhaImportanceFs =
         return vec2(z.x*z.x-z.y*z.y,2.0*z.x*z.y);
 
     }
-    float budhhaImportanc()
+    float budhhaImportance()
     {
         vec2 p = uv*(orbitSampleEnd-orbitSampleBegin)+orbitSampleBegin;
         vec2 z = p;
         bool valid = false;
-        int i  = 0;
-        for(;i<100;i++)
+        float fitness = 0.0;
+        
+        for(int i;i<iterationCount;i++)
         {
+            
+
             z = cpow2(z)+p;
+            vec2 k = (viewMatrix*vec3(z,1)).xy;
+            if(abs(k.x)<1.0 && abs(k.y)<1.0)
+            {
+                fitness++;
+            }
+
             float d =dot(z,z);
             if(d>4.0)
             {
@@ -33,17 +43,17 @@ const buddhaImportanceFs =
             }
         }
         if(valid){
-            return sqrt(float(i))/sqrt(100.);
+            return sqrt(fitness)/sqrt(float(iterationCount));
         }
         else
         {
-            return .0;
+            return 0.0;
         }
 
     }
     void main()
     {
-        result = budhhaImportanc();
+        result = budhhaImportance();
     }
     
     `;

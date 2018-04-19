@@ -1,7 +1,7 @@
 const buddhaTraceOrbitsVs = `
 #version 300 es
-precision highp float;
-precision highp int;
+precision lowp float;
+precision lowp int;
 layout(location = 0)in vec2 orbitPosition;
 layout(location = 1)in vec2 orbitSource;
 
@@ -9,7 +9,7 @@ uniform mat3 viewMatrix;
 uniform vec2 orbitSampleBegin;
 uniform vec2 orbitSampleEnd;
 uniform float iteration;
-
+uniform int mirror;
 
 out vec2 nextOrbitPosition;
 
@@ -22,9 +22,8 @@ vec2 cpow2(vec2 z)
 
 void main()
 {
-   
-  
-       
+
+     
         if(orbitPosition.x == 0.0&&orbitPosition.y == 0.0)
         {
             nextOrbitPosition.x = 0.0;
@@ -32,6 +31,10 @@ void main()
              gl_Position = vec4(10000,10000,0,1);
             gl_PointSize = 0.0;
         }
+        else if(mirror == 1)
+        {
+            gl_Position = vec4( (viewMatrix*vec3(orbitPosition*vec2(1,-1),1)).xy ,0,1);
+        }   
         else if(dot(orbitPosition,orbitPosition)>40.0)
         {
             nextOrbitPosition.x = 0.0;
@@ -40,7 +43,7 @@ void main()
             gl_PointSize = 0.0;
         }
         else{
-             gl_PointSize = 1.0;
+            gl_PointSize = 1.0;
             nextOrbitPosition = cpow2(orbitPosition)+orbitSource;
             gl_Position = vec4( (viewMatrix*vec3(nextOrbitPosition,1)).xy ,0,1);
         }
