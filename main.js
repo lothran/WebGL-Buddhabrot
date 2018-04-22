@@ -33,7 +33,7 @@ function main()
     var buddhas =[new Buddha(gl),new Buddha(gl),new Buddha(gl)]
         
 
-
+    buddhas.forEach(function(elmt){elmt.viewMatrix = mat.getMatrix();elmt.updateImportanceMap();});
     
     var mandelbrot = new Mandelbrot(gl);            
     var inMove =false;

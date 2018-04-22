@@ -8,17 +8,17 @@ var BuddhaCount = 0;
 function Buddha(gl)
 {
     this.gl= gl;
-    this.orbitSampleBegin = [-3,-2];
-    this.orbitSampleEnd = [2,2];
-    this.importanceResolution = 800;
-    this.orbitCount = 20000;
+    this.orbitSampleBegin = [-2.2,-1.1];
+    this.orbitSampleEnd = [0.5,1.1];
+    this.importanceResolution = 1200;
+    this.orbitCount = 2000;
     this.viewMatrix = [1,0,0,
                         0,1,0,
                         0,0,1];
 
                         
     this.importanceSampleCount =20;
-    this.iterationCount = 100;      
+    this.iterationCount = (1000+(Math.random()-0.5)*600)/((BuddhaCount+1));      
     this.sqrtNormalize = false;
     this.showImportanceMap = false;
     if(BuddhaCount%3 == 0)
@@ -58,8 +58,16 @@ function Buddha(gl)
     var mirrorCon = group.add(this,"drawMirrored");
     var sqrtNormalizeCon= group.add(this,"sqrtNormalize");
     var showImportanceMapCon= group.add(this,"showImportanceMap");
+    var importanceResolutionCon = group.add(this,"importanceResolution",50,2500);
+    importanceResolutionCon.onChange(()=>
+    {   
+        this.createImportanceFB();
+        this.reset();
+    });
+    importanceSampleCountCon.onChange(()=>{this.reset()});
     outputColorCon.onChange(()=>
     {   
+        
         this.reset();
     });
     importanceSampleCountCon .onChange(()=>
