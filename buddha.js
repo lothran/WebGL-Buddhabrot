@@ -5,7 +5,7 @@
 
 
 var BuddhaCount = 0;
-function Buddha(gl)
+function Buddha(gl,iterCount,color)
 {
     this.gl= gl;
     this.orbitSampleBegin = [-2.2,-1.1];
@@ -16,27 +16,18 @@ function Buddha(gl)
                         0,1,0,
                         0,0,1];
 
-                        
-    this.importanceSampleCount =20;
-    this.iterationCount = (1000+(Math.random()-0.5)*600)/((BuddhaCount+1));      
+    this.maxExp = 0.5;
+    this.densityExp = 0.5;
+    this.importanceSampleCount =50;
+    this.iterationCount =   iterCount;  
     this.sqrtNormalize = false;
     this.showImportanceMap = false;
-    if(BuddhaCount%3 == 0)
-    {
-        this.outputColor = [255,0,0,1];
-    }
-    if(BuddhaCount%3 == 1)
-    {
-        this.outputColor = [0,255,0,1];
-    }
-
-    if(BuddhaCount%3 == 2)
-    {
-        this.outputColor = [0,0,255,1];
-    }
+        
+    this.outputColor =  color;
+    
 
    
-    this.rng  = new MersenneTwister();
+    this.rng  = new MersenneTwister(BuddhaCount);
     this.importanceMapRender = new FullscreenQuad(gl,null,buddhaImportanceFs);
     this.createOrbitData();
     this.createOrbitFB();
@@ -52,13 +43,15 @@ function Buddha(gl)
     this.drawMirrored = true;
     var group = gui.addFolder("Buddha"+BuddhaCount.toString());
     var iterationCon = group.add(this,"iterationCount",1,800);
-    var orbitCountCon = group.add(this,"orbitCount",200,50000);
+    var orbitCountCon = group.add(this,"orbitCount",200,10000);
     var importanceSampleCountCon  = group.add(this,"importanceSampleCount",1,100);
     var outputColorCon = group.addColor(this,"outputColor");
     var mirrorCon = group.add(this,"drawMirrored");
-    var sqrtNormalizeCon= group.add(this,"sqrtNormalize");
+    var densityExpCon = group.add(this,"densityExp",0.2,1);
+    var maxExpCon = group.add(this,"maxExp",0.2,1);
     var showImportanceMapCon= group.add(this,"showImportanceMap");
     var importanceResolutionCon = group.add(this,"importanceResolution",50,2500);
+
     importanceResolutionCon.onChange(()=>
     {   
         this.createImportanceFB();
@@ -90,7 +83,10 @@ function Buddha(gl)
     out vec4 result;
     uniform sampler2D density;
     uniform sampler2D maxTex;
-    uniform bool sqrtNormalize;
+
+    uniform float densityExp;
+    uniform float maxExp;
+
     uniform bool showImportanceMap;
     uniform vec4 color;
     uniform vec2 renderSize;
@@ -115,8 +111,9 @@ function Buddha(gl)
             result = vec4(vec3(texture(density,uv).r),1);
             return;
         }
-        float d =  sqrt( sampleDensity(uv))/sqrt(maxDensity());
-   
+
+        float d =  pow(sampleDensity(uv),densityExp)/pow(maxDensity(),maxExp);
+     
         result = vec4(color.rgb*d,color.a);
 
     }`; 
@@ -127,7 +124,11 @@ function Buddha(gl)
 }
 Buddha.prototype = {
 
+    resize: function()
+    {
+        this.createOrbitFB();
 
+    },
     draw: function()
     {
         const gl = this.gl;
@@ -138,7 +139,8 @@ Buddha.prototype = {
             maxTex: this.normalizer.tex(),
             color: math.multiply( 1.0/255.0,this.outputColor),
             density: this.orbitFB.attachments[0],
-            sqrtNormalize: this.sqrtNormalize,
+            maxExp: this.maxExp,
+            densityExp:this.densityExp,
             showImportanceMap:this.showImportanceMap,
             renderSize:[gl.drawingBufferWidth,gl.drawingBufferHeight],
         }
@@ -164,7 +166,12 @@ Buddha.prototype = {
     },
     createImportanceFB: function()
     {
+      
         const gl = this.gl;
+        if(this.importanceFB)
+        {
+            gl.deleteFramebuffer(this.importanceFB.framebuffer);
+        }
         var size = math.multiply( math.subtract(this.orbitSampleEnd ,this.orbitSampleBegin),this.importanceResolution);
         const importanceAttachments = [
             {internalFormat:gl.R8, format: gl.RED,type:gl.UNSIGNED_BYTE}
@@ -240,7 +247,7 @@ Buddha.prototype = {
         {
             orbitSampleBegin:this.orbitSampleBegin,
             orbitSampleEnd:this.orbitSampleEnd,
-            iterationCount: this.iterationCount,
+            importanceSampleCount: this.importanceSampleCount,
             importanceMap: this.importanceFB.attachments[0],
             viewMatrix: this.viewMatrix,
 
@@ -338,7 +345,12 @@ Buddha.prototype = {
 
     createOrbitFB: function()
     {
+       
         const gl = this.gl;
+        if(this.orbitFB)
+        {
+            gl.deleteFramebuffer(this.orbitFB.framebuffer);
+        }
         const orbitAttachments = [
             {internalFormat:gl.R32F, format: gl.RED,type:gl.FLOAT}
         ]

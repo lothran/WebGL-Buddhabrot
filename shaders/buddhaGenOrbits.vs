@@ -13,7 +13,7 @@ flat out uint nextSeed;
 uniform mat3 viewMatrix;
 uniform vec2 orbitSampleBegin;
 uniform vec2 orbitSampleEnd;
-uniform int iterationCount;
+uniform int importanceSampleCount;
 uniform uint init;
 uniform sampler2D importanceMap;
 
@@ -43,7 +43,7 @@ bool isNotInM(vec2 p)
 {
   
     vec2 z = p;
-    for(int i = 0;i<iterationCount;i++)
+    for(int i = 0;i<importanceSampleCount;i++)
     {
         z = cpow2(z)+p;
         if(dot(z,z)>4.0)
@@ -61,7 +61,7 @@ vec2 pointOusideM()
 
     vec2 bestP = vec2(0);
     float bestI = 0.0;
-    for(int i = 0;i<40;i++)
+    for(int i = 0;i<importanceSampleCount;i++)
     {   
         vec2 uv =rand2();
         float I = texture(importanceMap,uv).r;
