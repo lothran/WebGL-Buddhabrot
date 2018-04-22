@@ -8,5 +8,8 @@ canvas { display:block;position: absolute; margin:0; padding:0;  }
 p
 {
     position: absolute;
+    left: 20px;
+    bottom: 1vh;
+    color: white;
 
 }
