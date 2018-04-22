@@ -1,5 +1,5 @@
 # WebGL-Buddhabrot
-A WebGL2 Buddhabrot Render using transformfeedback and importance sampling
+A WebGL2 Buddhabrot Render using transformfeedback and importance sampling to finde the best Orbits.
 
 
 
