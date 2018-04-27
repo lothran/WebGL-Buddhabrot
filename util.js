@@ -175,11 +175,6 @@ function MaxTexture(gl,width,height)
         twgl.bindFramebufferInfo(gl);
 
     }
-
-    
-    
-
-
 }
 
 

@@ -30,7 +30,7 @@ function main()
     var mat = new ViewMatrix2D([0,0],-2,-Math.PI/2,canvas);
    
     
-    var buddhas =[new Buddha(gl,500,[255,0,0]),new Buddha(gl,200,[0,255,0]),new Buddha(gl,60,[0,0,255])]
+    var buddhas =[new Buddha(gl,500,[255,0,0])]
     window.onresize = ()=>
     {
         buddhas.forEach((elmt)=>{elmt.createOrbitFB();});

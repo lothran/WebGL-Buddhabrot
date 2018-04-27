@@ -8,8 +8,8 @@ var BuddhaCount = 0;
 function Buddha(gl,iterCount,color)
 {
     this.gl= gl;
-    this.orbitSampleBegin = [-2.2,-1.1];
-    this.orbitSampleEnd = [0.5,1.1];
+    this.orbitSampleBegin = [-2.2,-1.4];
+    this.orbitSampleEnd = [0.6,1.4];
     this.importanceResolution = 1200;
     this.orbitCount = 2000;
     this.viewMatrix = [1,0,0,
